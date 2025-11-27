@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funil Atendimento IA</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000000;
+            overflow: hidden;
+        }
+        
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .react-flow {
+            background: #000000;
+        }
+        
+        /* Header minimalista */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-left h1 {
+            color: white;
+            font-size: 1.4em;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        
+        .header-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .controls button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .controls button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Legenda lateral esquerda - MINIMALISTA */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .legend h3 {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+        }
+        
+        /* Estilos dos nós - COLORIDOS CONFORME TIPO */
+        .react-flow__node {
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 16px 20px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+            min-width: 140px;
+            text-align: center;
+        }
+        
+        .react-flow__node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* INÍCIO - Roxo vibrante */
+        .react-flow__node-start {
+            background: #a855f7 !important;
+            color: white !important;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        
+        /* DECISÃO - Azul vibrante (losango) */
+        .react-flow__node-decision {
+            background: #3b82f6 !important;
+            color: white !important;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 35px 30px;
+            min-width: 160px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        /* PROCESSO COLD - Laranja vibrante */
+        .react-flow__node-process-cold {
+            background: #f97316 !important;
+            color: white !important;
+            font-weight: 600;
+        }
+        
+        /* PROCESSO WARM - Coral/Salmão */
+        .react-flow__node-process-warm {
+            background: #fb923c !important;
+            color: white !important;
+            font-weight: 600;
+        }
+        
+        /* PROCESSO HOT - Rosa vibrante */
+        .react-flow__node-process-hot {
+            background: #ec4899 !important;
+            color: white !important;
+            font-weight: 700;
+        }
+        
+        /* SUCESSO - Verde vibrante */
+        .react-flow__node-success {
+            background: #10b981 !important;
+            color: white !important;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        
+        /* FIM - Vermelho escuro */
+        .react-flow__node-end {
+            background: #dc2626 !important;
+            color: white !important;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        
+        /* ESPECIAL - Amarelo vibrante */
+        .react-flow__node-white {
+            background: #eab308 !important;
+            color: #1a1a1a !important;
+            font-weight: 700;
+        }
+        
+        /* Conexões limpas */
+        .react-flow__edge-path {
+            stroke: rgba(255, 255, 255, 0.25);
+            stroke-width: 2;
+        }
+        
+        .react-flow__edge.selected .react-flow__edge-path {
+            stroke: rgba(255, 255, 255, 0.5);
+            stroke-width: 3;
+        }
+        
+        /* Labels das conexões - COLORIDOS */
+        .react-flow__edge-text {
+            fill: white;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .react-flow__edge-textbg {
+            fill: transparent;
+        }
+        
+        /* Labels personalizados */
+        foreignObject .edge-label {
+            background: #ef4444;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        
+        foreignObject .edge-label.sim {
+            background: #10b981;
+        }
+        
+        foreignObject .edge-label.nao {
+            background: #ef4444;
+        }
+        
+        foreignObject .edge-label.respondeu {
+            background: #8b5cf6;
+        }
+        
+        foreignObject .edge-label.sem-resposta {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Controles do ReactFlow - minimalistas */
+        .react-flow__controls {
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+        
+        .react-flow__controls-button {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .react-flow__controls-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .react-flow__controls-button:last-child {
+            border-bottom: none;
+        }
+        
+        /* Mini-mapa limpo */
+        .react-flow__minimap {
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+        
+        .react-flow__minimap-mask {
+            fill: rgba(139, 92, 246, 0.2);
+        }
+        
+        /* Background pattern sutil */
+        .react-flow__background {
+            background-color: #000000;
+        }
+        
+        /* Remover outline ao selecionar */
+        .react-flow__node.selected {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
+        }
+        
+        /* Animações suaves */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .react-flow__node {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel" data-type="module">
+        const { useState, useCallback } = React;
+        const ReactFlow = window.ReactFlow.default;
+        const { Background, Controls, MiniMap } = window.ReactFlow;
+        
+        const initialNodes = [
+            // INÍCIO
+            { id: 'start', type: 'start', position: { x: 700, y: 40 }, data: { label: '💬 Chega Mensagem' } },
+            
+            // PRIMEIRA DECISÃO
+            { id: 'q1', type: 'decision', position: { x: 700, y: 160 }, data: { label: 'Origem é\nSite/Campanha?' } },
+            
+            // RAMIFICAÇÕES INICIAIS
+            { id: 'a1', type: 'process-cold', position: { x: 520, y: 310 }, data: { label: 'Criar Deal +\nNilo atende' } },
+            { id: 'a2', type: 'process-cold', position: { x: 920, y: 310 }, data: { label: 'Nilo atende\nmas não cria deal' } },
+            
+            // QUALIFICAÇÃO
+            { id: 'q2', type: 'decision', position: { x: 520, y: 450 }, data: { label: 'Nilo\nqualificou?' } },
+            { id: 'q3', type: 'decision', position: { x: 920, y: 450 }, data: { label: 'Nilo\nqualificou?' } },
+            
+            { id: 'qual', type: 'process-cold', position: { x: 640, y: 600 }, data: { label: 'Qualificado IA\n⏱️ 2 dias' } },
+            { id: 'entr', type: 'process-cold', position: { x: 350, y: 600 }, data: { label: '⏱️ Entrada Leads\n⏱️ 1 dia' } },
+            { id: 'semint', type: 'end', position: { x: 1120, y: 600 }, data: { label: 'Sem interação do lead\natendimento não finalizado' } },
+            
+            // NO CLOSER E FOLLOW-UPS
+            { id: 'nocloser', type: 'process-cold', position: { x: 640, y: 730 }, data: { label: 'No Closer\n⏱️ 4 dias' } },
+            { id: 'fu1', type: 'process-warm', position: { x: 280, y: 850 }, data: { label: 'Follow-up 1\n⏱️ 3 dias' } },
+            { id: 'c1', type: 'process-warm', position: { x: 80, y: 1000 }, data: { label: '📋 Conteúdo 1\n⏱️ 7 dias' } },
+            { id: 'c2', type: 'process-warm', position: { x: 80, y: 1180 }, data: { label: '🎯 Conteúdo 2\n⏱️ 7 dias' } },
+            { id: 'vale', type: 'white', position: { x: 80, y: 1360 }, data: { label: '👋 Despedida – Follow-up' } },
+            { id: 'perdido', type: 'end', position: { x: 80, y: 1500 }, data: { label: '❌ Perdido' } },
+            
+            // DECISÕES CLOSER
+            { id: 'closerenv', type: 'decision', position: { x: 620, y: 1000 }, data: { label: '👤 Closer avalia:\nEnviou proposta?' } },
+            
+            // PROPOSTA
+            { id: 'prop', type: 'process-hot', position: { x: 950, y: 1000 }, data: { label: '💼 Proposta\n⏱️ 2 dias' } },
+            { id: 'resp2d', type: 'decision', position: { x: 950, y: 1140 }, data: { label: 'Lead respondeu\nem 2 dias?' } },
+            
+            // FOLLOW PROPOSTA
+            { id: 'fuprox', type: 'process-warm', position: { x: 800, y: 1300 }, data: { label: 'Follow Proximidade\n⏱️ 5 dias' } },
+            { id: 'escassez', type: 'process-warm', position: { x: 600, y: 1430 }, data: { label: '⚡ Escassez\n⏱️ 5 dias' } },
+            { id: 'desp', type: 'decision', position: { x: 600, y: 1600 }, data: { label: '👋 Closer manda\nDespedida Follow-up' } },
+            
+            // AVALIAÇÃO RESPOSTA
+            { id: 'closerresp', type: 'decision', position: { x: 1150, y: 1140 }, data: { label: '👤 Closer avalia\nresposta' } },
+            
+            // RESULTADOS
+            { id: 'proxtemp1', type: 'process-hot', position: { x: 420, y: 1780 }, data: { label: '🔥 Próxima Temporada' } },
+            { id: 'nutricao1', type: 'process-hot', position: { x: 680, y: 1780 }, data: { label: '📧 Nutrição' } },
+            { id: 'hold', type: 'process-hot', position: { x: 1350, y: 1180 }, data: { label: '⏰ -Hold de Vaga\n-Próxima Temporada' } },
+            { id: 'proxtemp2', type: 'process-warm', position: { x: 1350, y: 1320 }, data: { label: '🔥 Próxima Temporada' } },
+            { id: 'nutricao2', type: 'process-warm', position: { x: 1150, y: 1360 }, data: { label: '📧 Nutrição' } },
+            
+            // SUCESSO
+            { id: 'ctr', type: 'success', position: { x: 1350, y: 1040 }, data: { label: '💰 CTR' } },
+            { id: 'adm', type: 'success', position: { x: 1350, y: 1480 }, data: { label: '✅ ADM' } },
+            { id: 'tiny', type: 'end', position: { x: 1350, y: 1620 }, data: { label: '🎉 Tiny' } },
+        ];
+        
+        const initialEdges = [
+            // Conexões com labels estilizadas - SIM VERDE, NÃO VERMELHO
+            { id: 'e1', source: 'start', target: 'q1' },
+            { id: 'e2', source: 'q1', target: 'a1', label: 'Sim', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e3', source: 'q1', target: 'a2', label: 'Não', labelBgStyle: { fill: '#ef4444' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e4', source: 'a1', target: 'q2' },
+            { id: 'e5', source: 'a2', target: 'q3' },
+            
+            { id: 'e6', source: 'q2', target: 'qual', label: 'Sim', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e7', source: 'q2', target: 'entr', label: 'Não', labelBgStyle: { fill: '#ef4444' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e8', source: 'q3', target: 'semint', label: 'Não', labelBgStyle: { fill: '#ef4444' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e9', source: 'q3', target: 'qual', label: 'Sim', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            
+            { id: 'e10', source: 'qual', target: 'nocloser', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e11', source: 'entr', target: 'nocloser' },
+            { id: 'e12', source: 'qual', target: 'closerenv', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            
+            { id: 'e13', source: 'nocloser', target: 'fu1', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e14', source: 'nocloser', target: 'closerenv', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e15', source: 'fu1', target: 'closerenv', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e16', source: 'fu1', target: 'c1', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e17', source: 'c1', target: 'closerenv', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e18', source: 'c1', target: 'c2', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e19', source: 'c2', target: 'closerenv', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e20', source: 'c2', target: 'vale', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e21', source: 'vale', target: 'perdido' },
+            
+            { id: 'e22', source: 'closerenv', target: 'prop', label: 'Sim', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e23', source: 'closerenv', target: 'fu1', label: 'Não', labelBgStyle: { fill: '#ef4444' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e24', source: 'prop', target: 'resp2d' },
+            
+            { id: 'e25', source: 'resp2d', target: 'closerresp', label: 'Sim', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e26', source: 'resp2d', target: 'fuprox', label: 'Não', labelBgStyle: { fill: '#ef4444' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e27', source: 'fuprox', target: 'closerresp', label: 'Respondeu', labelBgStyle: { fill: '#8b5cf6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e28', source: 'fuprox', target: 'escassez', label: 'Sem resposta', labelBgStyle: { fill: '#6b7280' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e29', source: 'escassez', target: 'desp' },
+            
+            { id: 'e30', source: 'desp', target: 'proxtemp1', label: 'Quente', labelBgStyle: { fill: '#f97316' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e31', source: 'desp', target: 'nutricao1', label: 'Frio', labelBgStyle: { fill: '#3b82f6' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            
+            { id: 'e32', source: 'closerresp', target: 'ctr', label: 'CTR', labelBgStyle: { fill: '#10b981' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e33', source: 'closerresp', target: 'hold', label: 'Hold', labelBgStyle: { fill: '#ec4899' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e34', source: 'closerresp', target: 'proxtemp2', label: 'Próx temp', labelBgStyle: { fill: '#f97316' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            { id: 'e35', source: 'closerresp', target: 'nutricao2', label: 'Nutrição', labelBgStyle: { fill: '#fb923c' }, labelStyle: { fill: 'white', fontWeight: 700 } },
+            
+            { id: 'e36', source: 'ctr', target: 'adm' },
+            { id: 'e37', source: 'adm', target: 'tiny' },
+        ];
+        
+        function FlowChart() {
+            const [nodes, setNodes] = useState(initialNodes);
+            const [edges, setEdges] = useState(initialEdges);
+            
+            const onNodesChange = useCallback((changes) => {
+                setNodes((nds) => window.ReactFlow.applyNodeChanges(changes, nds));
+            }, []);
+            
+            const onEdgesChange = useCallback((changes) => {
+                setEdges((eds) => window.ReactFlow.applyEdgeChanges(changes, eds));
+            }, []);
+            
+            const onConnect = useCallback((params) => {
+                setEdges((eds) => window.ReactFlow.addEdge(params, eds));
+            }, []);
+            
+            const exportJSON = () => {
+                const data = { nodes, edges };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pipeline_vendas.json';
+                a.click();
+            };
+            
+            const fitView = () => {
+                window.reactFlowInstance?.fitView({ padding: 0.15, duration: 600 });
+            };
+            
+            return (
+                <>
+                    <div className="header">
+                        <div className="header-left">
+                            <h1>Funil Atendimento IA</h1>
+                            <span className="header-subtitle">Fluxograma de Qualificação</span>
+                        </div>
+                        <div className="controls">
+                            <button onClick={fitView}>🔍 Ajustar Visualização</button>
+                            <button onClick={exportJSON}>💾 Exportar JSON</button>
+                        </div>
+                    </div>
+                    
+
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        onInit={(instance) => {
+                            window.reactFlowInstance = instance;
+                            instance.fitView({ padding: 0.15, duration: 800 });
+                        }}
+                        fitView
+                        defaultEdgeOptions={{
+                            type: 'smoothstep',
+                            animated: false,
+                            style: { stroke: 'rgba(255,255,255,0.25)', strokeWidth: 2 }
+                        }}
+                    >
+                        <Background 
+                            color="rgba(255,255,255,0.05)" 
+                            gap={30} 
+                            size={1}
+                        />
+                        <Controls showInteractive={false} />
+                        <MiniMap 
+                            nodeColor={(node) => {
+                                switch(node.type) {
+                                    case 'start': return '#a855f7';
+                                    case 'decision': return '#3b82f6';
+                                    case 'process-cold': return '#f97316';
+                                    case 'process-warm': return '#fb923c';
+                                    case 'process-hot': return '#ec4899';
+                                    case 'success': return '#10b981';
+                                    case 'end': return '#dc2626';
+                                    case 'white': return '#eab308';
+                                    default: return '#666';
+                                }
+                            }}
+                            style={{background: 'rgba(20, 20, 20, 0.95)'}}
+                            maskColor="rgba(139, 92, 246, 0.1)"
+                        />
+                    </ReactFlow>
+                </>
+            );
+        }
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<FlowChart />);
+    </script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>
