@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funil Atendimento IA - Cuca Pesca</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Paleta Cuca Pesca - Inspirada no site */
+            --cuca-dark: #0D1B2A;
+            --cuca-navy: #1B263B;
+            --cuca-slate: #415A77;
+            --cuca-steel: #778DA9;
+            --cuca-light: #E0E1DD;
+            --cuca-aqua: #00B4D8;
+            --cuca-teal: #0077B6;
+            --cuca-ocean: #023E8A;
+            
+            /* Cores de status */
+            --status-start: #00B4D8;
+            --status-decision: #778DA9;
+            --status-process: #0077B6;
+            --status-warm: #F59E0B;
+            --status-hot: #EF4444;
+            --status-success: #10B981;
+            --status-end: #64748B;
+            --status-waiting: #F59E0B;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--cuca-dark);
+            overflow: hidden;
+            color: var(--cuca-light);
+        }
+        
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Background sutil */
+        .app-bg {
+            position: fixed;
+            inset: 0;
+            background: 
+                linear-gradient(180deg, var(--cuca-dark) 0%, #0a1628 100%);
+            z-index: 0;
+        }
+        
+        .app-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 1000px 600px at 10% 90%, rgba(0, 180, 216, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse 800px 500px at 90% 10%, rgba(0, 119, 182, 0.03) 0%, transparent 50%);
+        }
+        
+        /* Header Clean */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(13, 27, 42, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid rgba(119, 141, 169, 0.15);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        /* =============================================
+           COMO ADICIONAR SUA LOGO:
+           
+           1. Substitua o src="" pela URL ou caminho da logo
+           2. Remova a classe "hidden" do img
+           3. Delete ou comente o .logo-placeholder
+           
+           Exemplos:
+           - URL: src="https://cucapesca.com/logo.png"
+           - Local: src="logo.png" (mesmo diretório)
+           - Base64: src="data:image/png;base64,..."
+           ============================================= */
+        
+        .logo-img {
+            height: 36px;
+            width: auto;
+        }
+        
+        .logo-img.hidden {
+            display: none;
+        }
+        
+        .logo-placeholder {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--cuca-aqua), var(--cuca-teal));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.3px;
+        }
+        
+        .brand-sub {
+            font-size: 11px;
+            color: var(--cuca-steel);
+            font-weight: 500;
+        }
+        
+        /* Search Minimalista */
+        .search-box {
+            position: relative;
+            width: 280px;
+        }
+        
+        .search-input {
+            width: 100%;
+            height: 38px;
+            background: rgba(65, 90, 119, 0.2);
+            border: 1px solid rgba(119, 141, 169, 0.2);
+            border-radius: 8px;
+            padding: 0 14px 0 38px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        
+        .search-input::placeholder {
+            color: var(--cuca-steel);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--cuca-aqua);
+            background: rgba(0, 180, 216, 0.08);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--cuca-steel);
+        }
+        
+        .search-results {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: var(--cuca-navy);
+            border: 1px solid rgba(119, 141, 169, 0.2);
+            border-radius: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+        
+        .search-results.active {
+            display: block;
+        }
+        
+        .search-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(119, 141, 169, 0.1);
+            transition: background 0.15s ease;
+        }
+        
+        .search-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-item:hover {
+            background: rgba(0, 180, 216, 0.1);
+        }
+        
+        .search-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .search-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cuca-light);
+        }
+        
+        /* Botões */
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn {
+            height: 38px;
+            padding: 0 16px;
+            background: rgba(65, 90, 119, 0.2);
+            border: 1px solid rgba(119, 141, 169, 0.2);
+            border-radius: 8px;
+            color: var(--cuca-light);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            background: rgba(65, 90, 119, 0.35);
+            border-color: rgba(119, 141, 169, 0.35);
+        }
+        
+        .btn-primary {
+            background: var(--cuca-teal);
+            border-color: var(--cuca-teal);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            background: var(--cuca-aqua);
+            border-color: var(--cuca-aqua);
+        }
+        
+        /* React Flow Container */
+        .react-flow {
+            background: transparent !important;
+        }
+        
+        /* Nodes - Design Limpo Cuca Pesca */
+        .react-flow__node {
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 120px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .react-flow__node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .react-flow__node-start {
+            background: var(--cuca-aqua);
+            border-color: rgba(255,255,255,0.2);
+            color: var(--cuca-dark);
+            font-weight: 700;
+            border-radius: 20px;
+        }
+        
+        .react-flow__node-decision {
+            background: var(--cuca-slate);
+            border-color: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        
+        .react-flow__node-process-cold {
+            background: var(--cuca-teal);
+            border-color: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        
+        .react-flow__node-process-warm {
+            background: var(--status-warm);
+            border-color: rgba(255,255,255,0.2);
+            color: var(--cuca-dark);
+        }
+        
+        .react-flow__node-process-hot {
+            background: var(--status-hot);
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        
+        .react-flow__node-success {
+            background: var(--status-success);
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        
+        .react-flow__node-end {
+            background: var(--cuca-navy);
+            border-color: var(--cuca-slate);
+            color: var(--cuca-steel);
+            border-radius: 20px;
+        }
+        
+        .react-flow__node-white {
+            background: var(--status-waiting);
+            border-color: rgba(255,255,255,0.2);
+            color: var(--cuca-dark);
+        }
+        
+        .react-flow__node.selected {
+            box-shadow: 0 0 0 2px var(--cuca-aqua), 0 6px 20px rgba(0, 180, 216, 0.3);
+        }
+        
+        /* Edges - Linhas mais limpas */
+        .react-flow__edge-path {
+            stroke-width: 1.5px !important;
+        }
+        
+        /* Labels das edges */
+        .react-flow__edge-text {
+            font-size: 10px !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Controls */
+        .react-flow__controls {
+            background: var(--cuca-navy) !important;
+            border: 1px solid rgba(119, 141, 169, 0.2) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .react-flow__controls-button {
+            background: transparent !important;
+            border: none !important;
+            border-bottom: 1px solid rgba(119, 141, 169, 0.15) !important;
+            width: 28px !important;
+            height: 28px !important;
+        }
+        
+        .react-flow__controls-button:last-child {
+            border-bottom: none !important;
+        }
+        
+        .react-flow__controls-button:hover {
+            background: rgba(0, 180, 216, 0.15) !important;
+        }
+        
+        .react-flow__controls-button svg {
+            fill: var(--cuca-steel) !important;
+        }
+        
+        /* MiniMap */
+        .react-flow__minimap {
+            background: var(--cuca-navy) !important;
+            border: 1px solid rgba(119, 141, 169, 0.2) !important;
+            border-radius: 8px !important;
+        }
+        
+        /* Modal Limpo */
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(13, 27, 42, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+        }
+        
+        .modal-bg.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal {
+            width: 400px;
+            max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 80px);
+            background: var(--cuca-navy);
+            border-radius: 16px;
+            border: 1px solid rgba(119, 141, 169, 0.2);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .modal-head {
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(65, 90, 119, 0.3) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(119, 141, 169, 0.15);
+        }
+        
+        .modal-head-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.3;
+            max-width: 280px;
+        }
+        
+        .modal-x {
+            width: 28px;
+            height: 28px;
+            background: transparent;
+            border: 1px solid rgba(119, 141, 169, 0.3);
+            border-radius: 6px;
+            color: var(--cuca-steel);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.15s ease;
+        }
+        
+        .modal-x:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        
+        .modal-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tag-auto {
+            background: rgba(0, 180, 216, 0.15);
+            color: var(--cuca-aqua);
+        }
+        
+        .tag-manual {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+        
+        .tag-decision {
+            background: rgba(119, 141, 169, 0.2);
+            color: var(--cuca-steel);
+        }
+        
+        .tag-end {
+            background: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+        }
+        
+        .tag-time {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+        
+        .modal-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .block {
+            margin-bottom: 20px;
+        }
+        
+        .block:last-child {
+            margin-bottom: 0;
+        }
+        
+        .block-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--cuca-steel);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .block-icon {
+            font-size: 12px;
+        }
+        
+        .msg-box {
+            background: rgba(13, 27, 42, 0.6);
+            border: 1px solid rgba(119, 141, 169, 0.15);
+            border-left: 3px solid var(--cuca-aqua);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--cuca-light);
+            white-space: pre-wrap;
+        }
+        
+        .desc-box {
+            background: rgba(13, 27, 42, 0.6);
+            border: 1px solid rgba(119, 141, 169, 0.15);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--cuca-steel);
+            white-space: pre-wrap;
+        }
+        
+        .copy-btn {
+            width: 100%;
+            height: 42px;
+            margin-top: 10px;
+            background: var(--cuca-teal);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: var(--cuca-aqua);
+        }
+        
+        .copy-btn.copied {
+            background: var(--status-success);
+        }
+        
+        .steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .step-item {
+            background: rgba(13, 27, 42, 0.6);
+            border: 1px solid rgba(119, 141, 169, 0.15);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--cuca-steel);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+        
+        .step-item::before {
+            content: '→';
+            color: var(--cuca-aqua);
+            font-weight: 700;
+        }
+        
+        .step-item:hover {
+            background: rgba(0, 180, 216, 0.08);
+            border-color: rgba(0, 180, 216, 0.3);
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(119, 141, 169, 0.3);
+            border-radius: 3px;
+        }
+        
+        /* Node Animation */
+        @keyframes nodeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .react-flow__node {
+            animation: nodeIn 0.3s ease;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header {
+                padding: 0 16px;
+            }
+            
+            .search-box {
+                display: none;
+            }
+            
+            .brand-sub {
+                display: none;
+            }
+            
+            .btn span:not(:first-child) {
+                display: none;
+            }
+            
+            .modal {
+                width: calc(100vw - 24px);
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-bg"></div>
+    <div id="root"></div>
+    
+    <script type="text/babel" data-type="module">
+        const { useState, useCallback, useEffect } = React;
+        const ReactFlow = window.ReactFlow.default;
+        const { Background, Controls, MiniMap } = window.ReactFlow;
+        
+        // DADOS
+        const stagesData = {
+            'start': {
+                title: 'Chega Mensagem',
+                type: 'auto',
+                description: 'Início do fluxo - Mensagem recebida de qualquer canal.',
+                message: 'Nilo atende',
+                nextSteps: ['Verificar origem da mensagem']
+            },
+            'q1': {
+                title: 'Origem é Site/Campanha?',
+                type: 'decision',
+                description: 'Identifica se a mensagem veio do site ou campanha.',
+                nextSteps: ['Sim → Criar Deal + Nilo atende', 'Não → Nilo atende mas não cria deal']
+            },
+            'a1': {
+                title: 'Criar Deal + Nilo atende',
+                type: 'auto',
+                description: 'Cria deal no Pipedrive e Nilo (IA) atende o lead.',
+                message: 'Nilo atendendo',
+                nextSteps: ['Verifica qualificação do Nilo']
+            },
+            'a2': {
+                title: 'Nilo atende mas não cria deal',
+                type: 'auto',
+                description: 'Nilo (IA) atende mas não cria deal no Pipedrive.',
+                message: 'Nilo atendendo',
+                nextSteps: ['Verifica qualificação do Nilo']
+            },
+            'q2': {
+                title: 'Nilo qualificou?',
+                type: 'decision',
+                description: 'Verifica se Nilo conseguiu qualificar o lead.',
+                nextSteps: ['Sim → Qualificado IA', 'Não → Entrada Leads']
+            },
+            'q3': {
+                title: 'Nilo qualificou?',
+                type: 'decision',
+                description: 'Verifica se Nilo conseguiu qualificar o lead (sem deal).',
+                nextSteps: ['Sim → Qualificado IA', 'Não → Sem interação']
+            },
+            'entr': {
+                title: 'Entrada Leads',
+                type: 'auto',
+                stagnation: '1 dia',
+                description: 'Lead sem interação o suficiente para qualificação.',
+                message: 'Sem mensagem',
+                nextSteps: ['Após 1 dia → No Closer']
+            },
+            'semint': {
+                title: 'Sem interação',
+                type: 'end',
+                description: 'Lead sem interação suficiente para qualificação.Nilo não consegue finalizar atendimento',
+                nextSteps: ['Closer entra em ação e tenta resgatar']
+            },
+            'qual': {
+                title: 'Qualificado IA',
+                type: 'auto',
+                stagnation: '2 dias',
+                description: 'Lead qualificado pela IA (Nilo). Closer envia PAC',
+                behavior: 'Se não responder, move para NO CLOSER de forma automatica. Se responder avançar para Proposta Feita.',
+                message: 'PAC',
+                nextSteps: ['Se respondeu → Proposta Feita', 'Se não respondeu → NO CLOSER']
+            },
+            'nocloser': {
+                title: 'NO CLOSER – Lead Silencioso',
+                type: 'manual',
+                stagnation: '4 dias',
+                description: 'Lead silencioso que não respondeu.',
+                behavior: 'Se interage, Closer analisa se move para Follow-up 1 ou Proposta Feita ',
+                message: 'Oi [nome], tudo bem?\nVi aqui que você demonstrou interesse em nossas expedições de pesca, mas acho que ainda não conseguimos conversar.\n\nSe possível me conta das suas pescarias e preferência, assim eu posso te assessorar melhor.\n\nDeixo o nosso site com alguns roteiros e fico a disposição.\nwww.cucapesca.com/destinos',
+                nextSteps: ['Sem resposta → Follow-up 1', 'Se respondeu → Proposta Feita']
+            },
+            'fu1': {
+                title: 'Follow-up 1 – Dúvidas e Urgência',
+                type: 'auto',
+                stagnation: '3 dias',
+                description: 'Cobrar interesse e gerar curiosidade com urgência.',
+                behavior: 'Closer acompanha e se tiver resposta, mover deal no funil.',
+                message: 'Como vai [nome]?\n\nFicou alguma dúvida sobre o destino que te apresentei?\nEstamos finalizando as turmas dessa temporada.\n\nFico a disposição.',
+                nextSteps: ['Se responder → Proposta Feita', 'Se não responder → Conteúdo 1']
+            },
+            'c1': {
+                title: 'Conteúdo 1 – Blog Inspiração',
+                type: 'auto',
+                stagnation: '7 dias',
+                description: 'Gerar interesse com conteúdo leve do blog.',
+                behavior: 'Closer acompanha e se tiver resposta, mover deal no funil.',
+                message: '[nome]\n\nEu lhe cadastrei para sempre enviar as novidades, boas datas, últimas vagas e conteúdos exclusivos.\n\n- Segue nosso insta: www.instagram.com/cucapesca\n- Grupo Relatos: https://chat.whatsapp.com/6BrQW2LMI1a64NsIncZezg',
+                nextSteps: ['Se responder → Proposta Feita', 'Se não responder → Conteúdo 2']
+            },
+            'c2': {
+                title: 'Conteúdo 2 – Oferta Final',
+                type: 'auto',
+                stagnation: '7 dias',
+                description: 'Última tentativa de conversão.',
+                behavior: 'Se não responde, vai para Despedida.',
+                message: 'Olá [nome],\n\nTenho alguns destinos interessantes com vagas nos próximos dias.\n\nSe tiver interesse me dê um alô.\n\nUm abs',
+                nextSteps: ['Se responder → Proposta Feita', 'Se não responder → Despedida – Follow-up']
+            },
+            'prop': {
+                title: 'Proposta Feita',
+                type: 'manual',
+                stagnation: '2 dias',
+                description: 'Lead recebeu proposta completa.\n\nSe não houver movimentação em 2 dias, vai AUTOMATICAMENTE para Follow up #1 - Proximidade.\n\nOU Closer pode mover manualmente para:\n• Hold de Vaga\n• Hot Próxima Temporada\n• Hot Lost - Nutrição',
+                nextSteps: ['Automático (2 dias) → Follow up #1 - Proximidade', 'Manual → Hold / Hot Próxima / Hot Lost']
+            },
+            'resp2d': {
+                title: 'Respondeu em 2 dias?',
+                type: 'decision',
+                description: 'Verifica se o lead respondeu à proposta dentro de 2 dias.',
+                nextSteps: ['Sim → Closer avalia', 'Não → Follow-up Proximidade']
+            },
+            'hold': {
+                title: 'Hold de Vaga',
+                type: 'manual',
+                stagnation: 'Sem limite',
+                description: 'Lead pediu tempo para decidir.',
+                behavior: 'Closer deve se mostrar à disposição. Criar atividade no CRM.',
+                message: '[nome],\n\nVou criar uma pré reserva em seu nome.\n\nSegue insta: www.instagram.com/cucapesca\nGrupo: https://chat.whatsapp.com/6BrQW2LMI1a64NsIncZezg',
+                nextSteps: ['Após retorno → Proposta Feita']
+            },
+            'fuprox': {
+                title: 'Follow Proximidade',
+                type: 'auto',
+                stagnation: '5 dias',
+                description: 'Criar confiança após envio da proposta.',
+                behavior: 'Se responder, avaliar próxima etapa.',
+                message: '[nome].\n\nFico à disposição pra ajustar qualquer ponto.\n\nSe tiver cotação, me envia que ajudo a avaliar.\n\n⚓️ ✈️ 👊🏻',
+                nextSteps: ['Se respondeu → Closer avalia', 'Se não → Follow-up #2 – Escassez']
+            },
+            'escassez': {
+                title: 'Follow-up #2 – Escassez',
+                type: 'auto',
+                stagnation: '5 dias',
+                description: 'Gerar urgência real.',
+                behavior: 'Última tentativa com urgência.',
+                message: 'Olá [nome]!\n\nVagas quase encerradas.\nTenta ir nessa viagem!\n\nFico a disposição.',
+                nextSteps: ['Após 2 dias → Despedida – Follow-up']
+            },
+            'desp': {
+                title: 'Despedida – Follow-up',
+                type: 'decision',
+                description: 'Closer avalia se o lead é hot ou cold para despedida.',
+                nextSteps: ['Lead Hot → Próxima Temporada', 'Lead Cold → Nutrição']
+            },
+            'proxtemp1': {
+                title: 'Próxima Temporada',
+                type: 'manual',
+                stagnation: 'Sem limite',
+                description: 'Lead quer receber infos futuras.',
+                behavior: 'Reativar 30 a 60 dias antes da próxima temporada.',
+                message: 'Show [nome]! Lista VIP!\n\nQualquer novidade lhe informo primeiro.',
+                nextSteps: ['Reengajamento em 60-90 dias']
+            },
+            'proxtemp2': {
+                title: 'Próxima Temporada',
+                type: 'manual',
+                stagnation: 'Sem limite',
+                description: 'Lead não vai agora mas tem interesse futuro.',
+                behavior: 'Reativar 30 a 60 dias antes da próxima temporada.',
+                message: 'Show [nome]! Lista VIP!\n\nQualquer novidade lhe informo primeiro.',
+                nextSteps: ['Reengajamento em 60-90 dias']
+            },
+            'nutricao1': {
+                title: 'Hot Lost – Nutrição',
+                type: 'manual',
+                stagnation: 'Sem limite',
+                description: 'Lead interessado mas sem possibilidade agora.',
+                behavior: 'Inserir em campanhas de nutrição.',
+                message: 'Tranquilo [nome]! Cada pescaria tem seu momento.\n\nLhe cadastrei para novidades.',
+                nextSteps: ['Campanhas de nutrição']
+            },
+            'nutricao2': {
+                title: 'Nutrição',
+                type: 'manual',
+                stagnation: 'Sem limite',
+                description: 'Lead sem interesse no momento.',
+                behavior: 'Inserir em campanhas de nutrição.',
+                message: 'Tranquilo [nome]! Cada pescaria tem seu momento.\n\nLhe cadastrei para novidades.',
+                nextSteps: ['Campanhas de nutrição']
+            },
+            'ctr': {
+                title: 'CTR - Fechou!',
+                type: 'manual',
+                description: 'Cliente confirmou proposta.',
+                behavior: 'Mover para ADM.',
+                message: 'Parabéns [nome]!\n\nJá estamos trabalhando na sua expedição.\n\n⚓️🦈 ✈️',
+                nextSteps: ['ADM Pós-Venda']
+            },
+            'adm': {
+                title: 'ADM',
+                type: 'manual',
+                description: 'Integração administrativa.',
+                behavior: 'Fim do funil comercial.',
+                nextSteps: ['Integração Tiny e Trip Plan']
+            },
+            'tiny': {
+                title: 'Tiny',
+                type: 'end',
+                description: 'Integração com Tiny ERP e Trip Plan finalizada.',
+                nextSteps: ['Fim do funil comercial']
+            },
+            'closerenv': {
+                title: 'Closer avalia',
+                type: 'decision',
+                description: 'Closer avalia a resposta do lead e define:\n\n• Se move para Proposta Feita (se demonstrou interesse)\n• OU deixa seguir o tempo de estagnação no funil automático',
+                nextSteps: ['Move para Proposta Feita', 'Deixa no funil automático']
+            },
+            'closerresp': {
+                title: 'Closer avalia',
+                type: 'decision',
+                description: 'Closer analisa a resposta e movimenta para:\n\n• CTR (fechou)\n• Hold de Vaga (pediu tempo)\n• Próxima Temporada (não vai agora)\n• Nutrição (sem interesse no momento)',
+                nextSteps: ['CTR', 'Hold', 'Próxima Temporada', 'Nutrição']
+            },
+            'vale': {
+                title: 'Despedida – Follow-up',
+                type: 'auto',
+                stagnation: '1 dia',
+                description: 'Encerrar com elegância e manter porta aberta.',
+                message: 'Foi um prazer conversar contigo, [nome]. Se quiser revisitar destinos é só me chamar - Equipe Cuca Pesca!',
+                nextSteps: ['Closer avalia']
+            },
+            'closerperdido': {
+                title: 'Closer avalia',
+                type: 'decision',
+                description: 'Closer analisa o perfil do lead perdido e define:\n\n• Nutrição (lead frio)\n• Próxima Temporada (lead hot)',
+                nextSteps: ['Nutrição Final', 'Próxima Temporada Final', 'Perdido']
+            },
+            'nutricaofinal': {
+                title: 'Nutrição',
+                type: 'end',
+                description: 'Lead entra em campanhas de nutrição de longo prazo.',
+                 behavior: 'Inserir em campanhas de nutrição.',
+                message: 'Tranquilo [nome]! Cada pescaria tem seu momento.\n\nLhe cadastrei para novidades.',
+                nextSteps: ['Campanhas de nutrição']
+            },
+            'proxtemp3': {
+                title: 'Próxima Temporada',
+                type: 'end',
+                description: 'Lead marcado para reengajamento na próxima temporada.',
+                 behavior: 'Reativar 30 a 60 dias antes da próxima temporada.',
+                message: 'Show [nome]! Lista VIP!\n\nQualquer novidade lhe informo primeiro.',
+                nextSteps: ['Reengajamento em 60-90 dias']
+            },
+            'perdido': {
+                title: 'Perdido',
+                type: 'end',
+                description: 'Lead perdido definitivamente.',
+                nextSteps: ['Fim do funil']
+            }
+        };
+        
+        const initialNodes = [
+            { id: 'start', type: 'start', position: { x: 700, y: 40 }, data: { label: '💬 Chega Mensagem' } },
+            { id: 'q1', type: 'decision', position: { x: 700, y: 140 }, data: { label: 'Site/Campanha?' } },
+            { id: 'a1', type: 'process-cold', position: { x: 500, y: 260 }, data: { label: 'Criar Deal +\nNilo atende' } },
+            { id: 'a2', type: 'process-cold', position: { x: 900, y: 260 }, data: { label: 'Nilo atende\n(sem deal)' } },
+            { id: 'q2', type: 'decision', position: { x: 500, y: 380 }, data: { label: 'Nilo\nqualificou?' } },
+            { id: 'q3', type: 'decision', position: { x: 900, y: 380 }, data: { label: 'Nilo\nqualificou?' } },
+            { id: 'qual', type: 'process-cold', position: { x: 620, y: 510 }, data: { label: 'Qualificado IA\n⏱ 2d' } },
+            { id: 'entr', type: 'process-cold', position: { x: 340, y: 510 }, data: { label: 'Entrada Leads\n⏱ 1d' } },
+            { id: 'semint', type: 'end', position: { x: 1080, y: 510 }, data: { label: 'Sem interação' } },
+            { id: 'nocloser', type: 'process-cold', position: { x: 620, y: 630 }, data: { label: 'No Closer\n⏱ 4d' } },
+            { id: 'fu1', type: 'process-warm', position: { x: 300, y: 760 }, data: { label: 'Follow-up 1\n⏱ 3d' } },
+            { id: 'c1', type: 'process-warm', position: { x: 120, y: 890 }, data: { label: 'Conteúdo 1 – Blog\n⏱ 7d' } },
+            { id: 'c2', type: 'process-warm', position: { x: 120, y: 1020 }, data: { label: 'Conteúdo 2\n⏱ 7d' } },
+            { id: 'vale', type: 'white', position: { x: 120, y: 1150 }, data: { label: 'Despedida' } },
+            { id: 'closerperdido', type: 'decision', position: { x: 120, y: 1270 }, data: { label: 'Closer\navalia' } },
+            { id: 'perdido', type: 'end', position: { x: 120, y: 1400 }, data: { label: '❌ Perdido' } },
+            { id: 'nutricaofinal', type: 'end', position: { x: -60, y: 1400 }, data: { label: '📧 Nutrição' } },
+            { id: 'proxtemp3', type: 'end', position: { x: 300, y: 1400 }, data: { label: '🔥 Próx Temp' } },
+            { id: 'closerenv', type: 'decision', position: { x: 580, y: 890 }, data: { label: 'Closer:\nEnviou proposta?' } },
+            { id: 'prop', type: 'process-hot', position: { x: 880, y: 890 }, data: { label: '💼 Proposta\n⏱ 2d' } },
+            { id: 'resp2d', type: 'decision', position: { x: 880, y: 1010 }, data: { label: 'Respondeu\nem 2 dias?' } },
+            { id: 'fuprox', type: 'process-warm', position: { x: 740, y: 1130 }, data: { label: 'Follow Prox\n⏱ 5d' } },
+            { id: 'escassez', type: 'process-warm', position: { x: 560, y: 1250 }, data: { label: '⚡ Escassez\n⏱ 5d' } },
+            { id: 'desp', type: 'decision', position: { x: 560, y: 1370 }, data: { label: 'Despedida' } },
+            { id: 'closerresp', type: 'decision', position: { x: 1060, y: 1010 }, data: { label: 'Closer\navalia' } },
+            { id: 'proxtemp1', type: 'process-hot', position: { x: 420, y: 1500 }, data: { label: '🔥 Próx Temp' } },
+            { id: 'nutricao1', type: 'process-hot', position: { x: 640, y: 1500 }, data: { label: '📧 Nutrição' } },
+            { id: 'hold', type: 'process-hot', position: { x: 1240, y: 1050 }, data: { label: '⏰ Hold' } },
+            { id: 'proxtemp2', type: 'process-warm', position: { x: 1240, y: 1170 }, data: { label: '🔥 Próx Temp' } },
+            { id: 'nutricao2', type: 'process-warm', position: { x: 1060, y: 1200 }, data: { label: '📧 Nutrição' } },
+            { id: 'ctr', type: 'success', position: { x: 1240, y: 930 }, data: { label: '💰 CTR' } },
+            { id: 'adm', type: 'success', position: { x: 1240, y: 1290 }, data: { label: '✅ ADM' } },
+            { id: 'tiny', type: 'end', position: { x: 1240, y: 1410 }, data: { label: '🎉 Tiny' } },
+        ];
+        
+        // Estilos de labels
+        const labelSim = { label: 'Sim', labelStyle: { fill: '#10b981', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#10b981', strokeWidth: 1 } };
+        const labelNao = { label: 'Não', labelStyle: { fill: '#ef4444', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#ef4444', strokeWidth: 1 } };
+        const labelResp = { label: 'Respondeu', labelStyle: { fill: '#00B4D8', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#00B4D8', strokeWidth: 1 } };
+        const labelSemResp = { label: 'Sem resposta', labelStyle: { fill: '#778DA9', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#778DA9', strokeWidth: 1 } };
+        const labelQuente = { label: 'Hot', labelStyle: { fill: '#F59E0B', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#F59E0B', strokeWidth: 1 } };
+        const labelFrio = { label: 'Cold', labelStyle: { fill: '#64748B', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#64748B', strokeWidth: 1 } };
+        const labelCTR = { label: 'CTR', labelStyle: { fill: '#10b981', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#10b981', strokeWidth: 1 } };
+        const labelHold = { label: 'Hold', labelStyle: { fill: '#EF4444', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#EF4444', strokeWidth: 1 } };
+        const labelNutri = { label: 'Nutrição', labelStyle: { fill: '#778DA9', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#778DA9', strokeWidth: 1 } };
+        const labelProxTemp = { label: 'Próx Temp', labelStyle: { fill: '#F59E0B', fontWeight: 700, fontSize: 11 }, labelBgPadding: [6, 4], labelBgBorderRadius: 4, labelBgStyle: { fill: '#0D1B2A', stroke: '#F59E0B', strokeWidth: 1 } };
+        
+        const initialEdges = [
+            { id: 'e1', source: 'start', target: 'q1' },
+            { id: 'e2', source: 'q1', target: 'a1', ...labelSim },
+            { id: 'e3', source: 'q1', target: 'a2', ...labelNao },
+            { id: 'e4', source: 'a1', target: 'q2' },
+            { id: 'e5', source: 'a2', target: 'q3' },
+            { id: 'e6', source: 'q2', target: 'qual', ...labelSim },
+            { id: 'e7', source: 'q2', target: 'entr', ...labelNao },
+            { id: 'e8', source: 'q3', target: 'semint', ...labelNao },
+            { id: 'e9', source: 'q3', target: 'qual', ...labelSim },
+            { id: 'e10', source: 'qual', target: 'nocloser', ...labelSemResp },
+            { id: 'e11', source: 'entr', target: 'nocloser' },
+            { id: 'e12', source: 'qual', target: 'closerenv', ...labelResp },
+            { id: 'e13', source: 'nocloser', target: 'fu1', ...labelSemResp },
+            { id: 'e14', source: 'nocloser', target: 'closerenv', ...labelResp },
+            { id: 'e15', source: 'fu1', target: 'closerenv', ...labelResp },
+            { id: 'e16', source: 'fu1', target: 'c1', ...labelSemResp },
+            { id: 'e17', source: 'c1', target: 'closerenv', ...labelResp },
+            { id: 'e18', source: 'c1', target: 'c2', ...labelSemResp },
+            { id: 'e19', source: 'c2', target: 'closerenv', ...labelResp },
+            { id: 'e20', source: 'c2', target: 'vale', ...labelSemResp },
+            { id: 'e21', source: 'vale', target: 'closerperdido' },
+            { id: 'e21b', source: 'closerperdido', target: 'perdido', ...labelSemResp },
+            { id: 'e21c', source: 'closerperdido', target: 'nutricaofinal', ...labelNutri },
+            { id: 'e21d', source: 'closerperdido', target: 'proxtemp3', ...labelProxTemp },
+            { id: 'e22', source: 'closerenv', target: 'prop', ...labelSim },
+            { id: 'e23', source: 'closerenv', target: 'fu1', ...labelNao },
+            { id: 'e24', source: 'prop', target: 'resp2d' },
+            { id: 'e25', source: 'resp2d', target: 'closerresp', ...labelSim },
+            { id: 'e26', source: 'resp2d', target: 'fuprox', ...labelNao },
+            { id: 'e27', source: 'fuprox', target: 'closerresp', ...labelResp },
+            { id: 'e28', source: 'fuprox', target: 'escassez', ...labelSemResp },
+            { id: 'e29', source: 'escassez', target: 'desp' },
+            { id: 'e30', source: 'desp', target: 'proxtemp1', ...labelQuente },
+            { id: 'e31', source: 'desp', target: 'nutricao1', ...labelFrio },
+            { id: 'e32', source: 'closerresp', target: 'ctr', ...labelCTR },
+            { id: 'e33', source: 'closerresp', target: 'hold', ...labelHold },
+            { id: 'e34', source: 'closerresp', target: 'proxtemp2', ...labelProxTemp },
+            { id: 'e35', source: 'closerresp', target: 'nutricao2', ...labelNutri },
+            { id: 'e36', source: 'ctr', target: 'adm' },
+            { id: 'e37', source: 'adm', target: 'tiny' },
+        ];
+        
+        // Search
+        function Search({ nodes, onSelect }) {
+            const [q, setQ] = useState('');
+            const [results, setResults] = useState([]);
+            const [open, setOpen] = useState(false);
+            
+            const colors = {
+                'start': '#00B4D8', 'decision': '#778DA9', 'process-cold': '#0077B6',
+                'process-warm': '#F59E0B', 'process-hot': '#EF4444', 'success': '#10B981',
+                'end': '#64748B', 'white': '#F59E0B'
+            };
+            
+            useEffect(() => {
+                if (q.length > 0) {
+                    const f = Object.entries(stagesData)
+                        .filter(([id, d]) => d.title.toLowerCase().includes(q.toLowerCase()))
+                        .slice(0, 6);
+                    setResults(f);
+                    setOpen(true);
+                } else {
+                    setResults([]);
+                    setOpen(false);
+                }
+            }, [q]);
+            
+            return (
+                <div className="search-box">
+                    <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Buscar etapa..."
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        onFocus={() => q.length > 0 && setOpen(true)}
+                        onBlur={() => setTimeout(() => setOpen(false), 150)}
+                    />
+                    <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <div className={`search-results ${open && results.length ? 'active' : ''}`}>
+                        {results.map(([id, d]) => {
+                            const node = nodes.find(n => n.id === id);
+                            return (
+                                <div key={id} className="search-item" onClick={() => { onSelect(id); setQ(''); setOpen(false); }}>
+                                    <div className="search-dot" style={{ background: colors[node?.type] || '#666' }}/>
+                                    <span className="search-text">{d.title}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+        
+        function App() {
+            const [nodes, setNodes] = useState(initialNodes);
+            const [edges, setEdges] = useState(initialEdges);
+            const [selected, setSelected] = useState(null);
+            const [selectedId, setSelectedId] = useState(null);
+            const [copied, setCopied] = useState(false);
+            const [rf, setRf] = useState(null);
+            
+            const onNodesChange = useCallback((c) => setNodes((n) => window.ReactFlow.applyNodeChanges(c, n)), []);
+            const onEdgesChange = useCallback((c) => setEdges((e) => window.ReactFlow.applyEdgeChanges(c, e)), []);
+            
+            const onNodeClick = useCallback((e, node) => {
+                if (selectedId === node.id) { setSelected(null); setSelectedId(null); return; }
+                const d = stagesData[node.id];
+                if (d) { setSelected(d); setSelectedId(node.id); setCopied(false); }
+            }, [selectedId]);
+            
+            const onSelect = useCallback((id) => {
+                const node = nodes.find(n => n.id === id);
+                if (node && rf) {
+                    rf.setCenter(node.position.x + 60, node.position.y + 25, { duration: 600, zoom: 1.3 });
+                    setTimeout(() => {
+                        const d = stagesData[id];
+                        if (d) { setSelected(d); setSelectedId(id); setCopied(false); }
+                    }, 300);
+                }
+            }, [nodes, rf]);
+            
+            const close = () => { setSelected(null); setSelectedId(null); setCopied(false); };
+            
+            const copy = () => {
+                if (selected?.message) {
+                    navigator.clipboard.writeText(selected.message);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                }
+            };
+            
+            const exportData = () => {
+                const blob = new Blob([JSON.stringify({ nodes, edges, stagesData }, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                a.download = 'pipeline_cucapesca.json'; a.click();
+            };
+            
+            const fit = () => rf?.fitView({ padding: 0.12, duration: 500 });
+            
+            const getTag = (t) => {
+                if (t === 'auto') return { cls: 'tag tag-auto', txt: '🤖 Auto' };
+                if (t === 'manual') return { cls: 'tag tag-manual', txt: '👤 Manual' };
+                if (t === 'decision') return { cls: 'tag tag-decision', txt: '❓ Decisão' };
+                return { cls: 'tag tag-end', txt: '🏁 Fim' };
+            };
+            
+            return (
+                <>
+                    <header className="header">
+                        <div className="header-left">
+                            {/* LOGO: Adicione sua logo aqui */}
+                            <img src="Logo-Cuca-Pesca.png" alt="Cuca Pesca" className="logo-img" />
+                            <div className="brand">
+                                <span className="brand-title">Funil Atendimento IA - Fluxograma</span>
+                                <span className="brand-sub">Cuca Pesca</span>
+                            </div>
+                        </div>
+                        
+                        <Search nodes={nodes} onSelect={onSelect} />
+                        
+                        <div className="header-actions">
+                            <button className="btn" onClick={fit}>
+                                <span>🎯</span><span>Ajustar</span>
+                            </button>
+                            <button className="btn btn-primary" onClick={exportData}>
+                                <span>💾</span><span>Exportar</span>
+                            </button>
+                        </div>
+                    </header>
+                    
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onNodeClick={onNodeClick}
+                        onInit={(i) => { setRf(i); i.fitView({ padding: 0.12, duration: 600 }); }}
+                        fitView
+                        defaultEdgeOptions={{
+                            type: 'smoothstep',
+                            style: { stroke: 'rgba(119, 141, 169, 0.4)', strokeWidth: 1.5 }
+                        }}
+                    >
+                        <Background color="rgba(119, 141, 169, 0.06)" gap={40} size={1} />
+                        <Controls showInteractive={false} />
+                        <MiniMap
+                            nodeColor={(n) => ({
+                                'start': '#00B4D8', 'decision': '#778DA9', 'process-cold': '#0077B6',
+                                'process-warm': '#F59E0B', 'process-hot': '#EF4444', 'success': '#10B981',
+                                'end': '#64748B', 'white': '#F59E0B'
+                            }[n.type] || '#666')}
+                            style={{ background: 'rgba(27, 38, 59, 0.95)' }}
+                            maskColor="rgba(0, 180, 216, 0.05)"
+                        />
+                    </ReactFlow>
+                    
+                    {selected && (
+                        <div className="modal-bg active" onClick={close}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-head">
+                                    <div className="modal-head-top">
+                                        <h2 className="modal-title">{selected.title}</h2>
+                                        <button className="modal-x" onClick={close}>✕</button>
+                                    </div>
+                                    <div className="modal-tags">
+                                        <span className={getTag(selected.type).cls}>{getTag(selected.type).txt}</span>
+                                        {selected.stagnation && <span className="tag tag-time">⏱ {selected.stagnation}</span>}
+                                    </div>
+                                </div>
+                                <div className="modal-content">
+                                    {selected.message && (
+                                        <div className="block">
+                                            <div className="block-label"><span className="block-icon">💬</span> Mensagem</div>
+                                            <div className="msg-box">{selected.message}</div>
+                                            <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={copy}>
+                                                {copied ? '✓ Copiado!' : '📋 Copiar'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {selected.description && (
+                                        <div className="block">
+                                            <div className="block-label"><span className="block-icon">📝</span> Instrução</div>
+                                            <div className="desc-box">{selected.description}</div>
+                                        </div>
+                                    )}
+                                    {selected.behavior && (
+                                        <div className="block">
+                                            <div className="block-label"><span className="block-icon">⚡</span> Comportamento</div>
+                                            <div className="desc-box">{selected.behavior}</div>
+                                        </div>
+                                    )}
+                                    {selected.nextSteps && (
+                                        <div className="block">
+                                            <div className="block-label"><span className="block-icon">➡️</span> Próximos Passos</div>
+                                            <div className="steps-list">
+                                                {selected.nextSteps.map((s, i) => <div key={i} className="step-item">{s}</div>)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
+        }
+        
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
